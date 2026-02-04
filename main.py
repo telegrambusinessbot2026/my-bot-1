@@ -3,7 +3,7 @@ from telegram.ext import Application, ChatJoinRequestHandler, MessageHandler, fi
 
 # ---------------- വിവരങ്ങൾ നൽകുക ----------------
 
-BOT_TOKEN = "8563464170:AAEkgJCy7Lf8BOedU0HaaIEL188W_eIGqAw"
+BOT_TOKEN = "8563464170:AAFWdI8m-aEVmYtFtSkPyz-QhDH3MWLljf0"
 
 # 1. നിങ്ങളുടെ മെയിൻ ഗ്രൂപ്പ് (ഈ ഗ്രൂപ്പിൽ മാത്രമേ ബോട്ട് നിൽക്കൂ)
 # (ഐഡിയുടെ മുന്നിൽ -100 ചേർക്കാൻ മറക്കരുത്)
@@ -98,4 +98,5 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__":
+
     main()
