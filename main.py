@@ -1,102 +1,139 @@
+import os
+import threading
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, ChatJoinRequestHandler, MessageHandler, filters, ContextTypes
 
-# ---------------- വിവരങ്ങൾ നൽകുക ----------------
+# ========================================================
+# 👇 1. RENDER SERVER SETTINGS (ഇതാണ് ബോട്ടിനെ ഓഫ് ആക്കാതെ നോക്കുന്നത്)
+# ========================================================
+app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return "Secure Bot is Running!"
+
+@app.route('/health')
+def health():
+    return "Healthy", 200
+
+def run_web_server():
+    port = int(os.environ.get('PORT', 8080))
+    print(f"🌍 Web Server starting on port {port}")
+    app.run(host='0.0.0.0', port=port)
+
+# ========================================================
+# 👇 2. നിങ്ങളുടെ വിവരങ്ങൾ (നിങ്ങൾ തന്ന അതേ കാര്യങ്ങൾ)
+# ========================================================
+
+# 1. ബോട്ട് ടോക്കൺ
 BOT_TOKEN = "8563464170:AAFWdI8m-aEVmYtFtSkPyz-QhDH3MWLljf0"
 
-# 1. നിങ്ങളുടെ മെയിൻ ഗ്രൂപ്പ് (ഈ ഗ്രൂപ്പിൽ മാത്രമേ ബോട്ട് നിൽക്കൂ)
-# (ഐഡിയുടെ മുന്നിൽ -100 ചേർക്കാൻ മറക്കരുത്)
-SOURCE_GROUP_ID = -1002706112246
+# 2. നിങ്ങളുടെ മെയിൻ ഗ്രൂപ്പ് ID
+SOURCE_GROUP_ID = -1003621584117
 
-# 2. ലോഗ് ചാനൽ (ഇതും അനുവദിക്കപ്പെട്ടതാണ്)
+# 3. ലോഗ് ഗ്രൂപ്പ് ID
 LOG_GROUP_ID = -5112941483
 
-# -----------------------------------------------
+# ========================================================
+# 👇 3. ബോട്ടിന്റെ ഫങ്ക്ഷനുകൾ (നിങ്ങളുടെ കോഡ്)
+# ========================================================
 
-async def security_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """അനുവാദമില്ലാത്ത ഗ്രൂപ്പിൽ ആരെങ്കിലും ആഡ് ചെയ്താൽ ബോട്ട് ലെഫ്റ്റ് ആകുന്നു"""
+async def send_startup_message(application: Application):
+    """ബോട്ട് സ്റ്റാർട്ട് ആകുമ്പോൾ ലോഗ് ഗ്രൂപ്പിൽ അറിയിക്കുന്നു"""
     try:
-        chat = update.effective_chat
-        
-        # പ്രൈവറ്റ് ചാറ്റ് ആണെങ്കിൽ കുഴപ്പമില്ല (നിങ്ങൾക്ക് മെസ്സേജ് അയക്കാമല്ലോ)
-        if chat.type == "private":
-            return
-
-        # നമ്മുടെ ഗ്രൂപ്പോ ലോഗ് ചാനലോ അല്ലെങ്കിൽ ബോട്ട് ലെഫ്റ്റ് ആകും
-        if chat.id != SOURCE_GROUP_ID and chat.id != LOG_GROUP_ID:
-            await context.bot.send_message(chat_id=chat.id, text="⚠️ This is a Private Bot. I cannot work here. Bye!")
-            await context.bot.leave_chat(chat_id=chat.id)
-            print(f"Left unauthorized group: {chat.title}")
-            
+        await application.bot.send_message(chat_id=LOG_GROUP_ID, text="🔒 **Secure Bot is ONLINE!**\nLocked to your Main Group.")
+        print("Bot Connected Successfully!")
     except Exception as e:
-        print(f"Security Error: {e}")
+        print(f"Startup Error: {e}")
 
 async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ജോയിൻ റിക്വസ്റ്റ് അപ്രൂവ് ചെയ്യുന്നു (നമ്മുടെ ഗ്രൂപ്പിൽ മാത്രം)"""
+    """ജോയിൻ റിക്വസ്റ്റ് (മെയിൻ ഗ്രൂപ്പിൽ നിന്ന് മാത്രം)"""
     try:
-        if update.effective_chat.id == SOURCE_GROUP_ID:
-            await context.bot.approve_chat_join_request(chat_id=update.effective_chat.id, user_id=update.effective_user.id)
-            
-            # ലോഗ് ഗ്രൂപ്പിൽ അറിയിക്കുന്നു
-            await context.bot.send_message(
-                chat_id=LOG_GROUP_ID, 
-                text=f"✅ **JOIN APPROVED**\n👤: {update.effective_user.first_name}"
-            )
+        if update.effective_chat.id != SOURCE_GROUP_ID:
+            return
+
+        await context.bot.approve_chat_join_request(chat_id=update.effective_chat.id, user_id=update.effective_user.id)
+
+        # ലോഗ് ഗ്രൂപ്പിൽ അറിയിക്കുന്നു
+        await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"✅ **JOIN APPROVED**\n👤: {update.effective_user.first_name}")
     except Exception as e:
         print(f"Approve Error: {e}")
 
 async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """മെസ്സേജ് ലോഗ് ചെയ്യാനും സ്പാം ഡിലീറ്റ് ചെയ്യാനും"""
+    """സെക്യൂരിറ്റി ചെക്ക്, മെസ്സേജ് കോപ്പി, സ്പാം ഡിലീറ്റ്"""
     try:
-        # ആദ്യം സെക്യൂരിറ്റി ചെക്ക് നടത്തുന്നു (അന്യ ഗ്രൂപ്പാണെങ്കിൽ ലെഫ്റ്റ് ആകും)
-        if update.effective_chat.id != SOURCE_GROUP_ID:
-            await security_check(update, context)
+        chat = update.effective_chat
+        message = update.effective_message
+
+        # 1. പ്രൈവറ്റ് മെസ്സേജ് ആണെങ്കിൽ ഒഴിവാക്കുക
+        if chat.type == "private":
+            return
+
+        # 2. ലോഗ് ഗ്രൂപ്പിലെ മെസ്സേജ് ആണെങ്കിൽ ഒന്നും ചെയ്യണ്ട
+        if chat.id == LOG_GROUP_ID:
+            return
+
+        # 🛑 3. SECURITY CHECK
+        if chat.id != SOURCE_GROUP_ID:
+            try:
+                await context.bot.send_message(chat_id=chat.id, text="⚠️ **This is a Private Bot.** I cannot work here. Bye!")
+                await context.bot.leave_chat(chat_id=chat.id)
+                print(f"Left unauthorized group: {chat.title}")
+            except:
+                pass
             return
 
         # --- ഇവിടെ മുതൽ നമ്മുടെ ഗ്രൂപ്പിലെ കാര്യങ്ങൾ ---
-        message = update.effective_message
         user = message.from_user
-        text = message.text or message.caption or ""
+        text = (message.text or message.caption or "").lower()
 
-        # 1. SPAM CHECK (Link / Forward)
-        is_spam = ("http" in text or "t.me" in text or ".com" in text) or (message.forward_origin is not None)
-        
-        # അഡ്മിൻ ആണോ എന്ന് നോക്കുന്നു
-        chat_admins = await context.bot.get_chat_administrators(SOURCE_GROUP_ID)
-        is_admin = user.id in [admin.user.id for admin in chat_admins]
+        # A. സ്പാം ചെക്കിംഗ്
+        is_link = "http" in text or "t.me" in text or ".com" in text or "www." in text or "@" in text
+        is_forward = message.forward_origin is not None
 
-        if is_spam and not is_admin:
+        try:
+            chat_admins = await context.bot.get_chat_administrators(chat.id)
+            is_admin = user.id in [admin.user.id for admin in chat_admins]
+        except:
+            is_admin = False
+
+        # സ്പാം ആണെങ്കിൽ (അഡ്മിൻ അല്ലെങ്കിൽ)
+        if (is_link or is_forward) and not is_admin:
             try:
-                # Step 1: ലോഗ് ചെയ്യുന്നു
-                await context.bot.forward_message(chat_id=LOG_GROUP_ID, from_chat_id=SOURCE_GROUP_ID, message_id=message.message_id)
-                await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"🗑️ **SPAM REMOVED**\nUser: {user.first_name}")
-                
-                # Step 2: ഡിലീറ്റ് ചെയ്യുന്നു
+                await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"🚨 **SPAM DETECTED** from {user.first_name}")
+                await context.bot.copy_message(chat_id=LOG_GROUP_ID, from_chat_id=chat.id, message_id=message.message_id)
                 await message.delete()
-                return 
-            except:
-                pass
+                return
+            except Exception as e:
+                print(f"Delete Error: {e}")
 
-        # 2. NORMAL LOGGING (ബാക്കി എല്ലാം ലോഗ് ചെയ്യുന്നു)
-        await context.bot.forward_message(chat_id=LOG_GROUP_ID, from_chat_id=SOURCE_GROUP_ID, message_id=message.message_id)
+        # B. സാധാരണ മെസ്സേജ് ലോഗിങ്ങ്
+        try:
+            await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"📩 **Msg from:** {user.first_name}")
+            await context.bot.copy_message(chat_id=LOG_GROUP_ID, from_chat_id=chat.id, message_id=message.message_id)
+        except Exception as e:
+            print(f"Log Error: {e}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Main Error: {e}")
+
+# ========================================================
+# 👇 4. മെയിൻ പ്രോഗ്രാം (ഇവിടെ മാറ്റം വരുത്തി)
+# ========================================================
 
 def main():
+    # 1. വെബ് സർവർ ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു (Render-ന് വേണ്ടി)
+    threading.Thread(target=run_web_server).start()
+
     print("Secure Bot Starting...")
-    app = Application.builder().token(BOT_TOKEN).build()
-
-    # 1. Join Request
+    app = Application.builder().token(BOT_TOKEN).post_init(send_startup_message).build()
+    
     app.add_handler(ChatJoinRequestHandler(auto_approve))
-
-    # 2. All Messages (Security + Log + Spam)
-    app.add_handler(MessageHandler(filters.ALL, handle_everything))
-
-    print("Bot is Running! (Only in YOUR Group)")
+    app.add_handler(MessageHandler(filters.ChatType.GROUPS | filters.ChatType.SUPERGROUP, handle_everything))
+    
+    print("Bot is Running...")
     app.run_polling()
 
 if __name__ == "__main__":
-
     main()
