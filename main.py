@@ -27,7 +27,7 @@ def run_web_server():
 # ========================================================
 
 # 1. ബോട്ട് ടോക്കൺ
-BOT_TOKEN = "8563464170:AAFWdI8m-aEVmYtFtSkPyz-QhDH3MWLljf0"
+BOT_TOKEN = "8563464170:AAEIi3Ft0vuTv_cOitSiBaC_6-Bhl2pyFCs"
 
 # 2. നിങ്ങളുടെ മെയിൻ ഗ്രൂപ്പ് ID
 SOURCE_GROUP_ID = -1003621584117
@@ -137,3 +137,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
