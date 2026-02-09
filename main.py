@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import Application, ChatJoinRequestHandler, MessageHandler, filters, ContextTypes
 
 # ========================================================
-# 👇 1. RENDER SERVER SETTINGS (ഇതാണ് ബോട്ടിനെ ഓഫ് ആക്കാതെ നോക്കുന്നത്)
+# 👇 1. RENDER SERVER SETTINGS (ബോട്ട് ഓഫ് ആകാതിരിക്കാൻ)
 # ========================================================
 app = Flask(__name__)
 
@@ -23,7 +23,7 @@ def run_web_server():
     app.run(host='0.0.0.0', port=port)
 
 # ========================================================
-# 👇 2. നിങ്ങളുടെ വിവരങ്ങൾ (നിങ്ങൾ തന്ന അതേ കാര്യങ്ങൾ)
+# 👇 2. നിങ്ങളുടെ വിവരങ്ങൾ
 # ========================================================
 
 # 1. ബോട്ട് ടോക്കൺ
@@ -36,7 +36,7 @@ SOURCE_GROUP_ID = -1003621584117
 LOG_GROUP_ID = -5112941483
 
 # ========================================================
-# 👇 3. ബോട്ടിന്റെ ഫങ്ക്ഷനുകൾ (നിങ്ങളുടെ കോഡ്)
+# 👇 3. ബോട്ടിന്റെ ഫങ്ക്ഷനുകൾ
 # ========================================================
 
 async def send_startup_message(application: Application):
@@ -74,7 +74,7 @@ async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if chat.id == LOG_GROUP_ID:
             return
 
-        # 🛑 3. SECURITY CHECK
+        # 🛑 3. SECURITY CHECK (നിങ്ങളുടെ ഗ്രൂപ്പ് അല്ലെങ്കിൽ ബോട്ട് ലെഫ്റ്റ് ആകും)
         if chat.id != SOURCE_GROUP_ID:
             try:
                 await context.bot.send_message(chat_id=chat.id, text="⚠️ **This is a Private Bot.** I cannot work here. Bye!")
@@ -101,14 +101,17 @@ async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # സ്പാം ആണെങ്കിൽ (അഡ്മിൻ അല്ലെങ്കിൽ)
         if (is_link or is_forward) and not is_admin:
             try:
+                # സ്പാം മെസ്സേജ് ലോഗ് ഗ്രൂപ്പിലേക്ക് മാറ്റുന്നു
                 await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"🚨 **SPAM DETECTED** from {user.first_name}")
                 await context.bot.copy_message(chat_id=LOG_GROUP_ID, from_chat_id=chat.id, message_id=message.message_id)
+                
+                # ഗ്രൂപ്പിൽ നിന്ന് ഡിലീറ്റ് ചെയ്യുന്നു
                 await message.delete()
                 return
             except Exception as e:
                 print(f"Delete Error: {e}")
 
-        # B. സാധാരണ മെസ്സേജ് ലോഗിങ്ങ്
+        # B. സാധാരണ മെസ്സേജ് ലോഗിങ്ങ് (സ്പാം അല്ലാത്തവ)
         try:
             await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"📩 **Msg from:** {user.first_name}")
             await context.bot.copy_message(chat_id=LOG_GROUP_ID, from_chat_id=chat.id, message_id=message.message_id)
@@ -119,7 +122,7 @@ async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Main Error: {e}")
 
 # ========================================================
-# 👇 4. മെയിൻ പ്രോഗ്രാം (ഇവിടെ മാറ്റം വരുത്തി)
+# 👇 4. മെയിൻ പ്രോഗ്രാം
 # ========================================================
 
 def main():
@@ -130,6 +133,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).post_init(send_startup_message).build()
     
     app.add_handler(ChatJoinRequestHandler(auto_approve))
+    # ഗ്രൂപ്പുകളിലെ എല്ലാ മെസ്സേജുകളും നോക്കാൻ
     app.add_handler(MessageHandler(filters.ChatType.GROUPS | filters.ChatType.SUPERGROUP, handle_everything))
     
     print("Bot is Running...")
@@ -137,4 +141,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
